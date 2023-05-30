@@ -4,42 +4,44 @@ import { AntDesign } from "@expo/vector-icons";
 import { MaterialIcons } from "@expo/vector-icons";
 
 const Task = (props) => {
-  const { name, desc, id, done } = props;
+  const { name, desc, id, done, db } = props;
   const [refreshing, setRefreshing] = useState(false);
+  const [forceUpdate, forceUpdateId] = useForceUpdate();
 
   const ChangeDone = async () => {
     setRefreshing(true);
-    fetch(
-      `https://todo-server-1vzj.onrender.com/api/v1/task/change-done/${id}`,
-      {
-        method: "PUT",
-        headers: {
-          Authorization: "LQD0nviJlMueu9XM",
+    if (done == 0) {
+      db.transaction(
+        (tx) => {
+          tx.executeSql(`update tasks set done = 1 where id = ?;`, [id]);
         },
-      }
-    )
-      .then((response) => response.json())
-      .then((data) => {
-        setRefreshing(false);
-      })
-      .catch((err) => console.error(err));
+        null,
+        forceUpdate
+      );
+    } else {
+      db.transaction(
+        (tx) => {
+          tx.executeSql(`update tasks set done = 0 where id = ?;`, [id]);
+        },
+        null,
+        forceUpdate
+      );
+    }
+    setRefreshing(false);
   };
   const DeleteTask = () => {
     setRefreshing(true);
-    fetch(`https://todo-server-1vzj.onrender.com/api/v1/task/${id}`, {
-      method: "DELETE",
-      headers: {
-        Authorization: "LQD0nviJlMueu9XM",
+    db.transaction(
+      (tx) => {
+        tx.executeSql(`delete from tasks where id = ?;`, [id]);
       },
-    })
-      .then((response) => response.json())
-      .then((data) => {
-        setRefreshing(false);
-      })
-      .catch((err) => console.error(err));
+      null,
+      forceUpdate
+    );
+    setRefreshing(false);
   };
   return (
-    <View style={{ ...styles.container, opacity: done ? 0.6 : 1 }}>
+    <View style={{ ...styles.container, opacity: done == 1 ? 0.6 : 1 }}>
       <View>
         <Text style={{ color: "#fff", fontSize: 17, marginBottom: 5 }}>
           {name}
@@ -56,7 +58,7 @@ const Task = (props) => {
           style={{ marginBottom: 10 }}
           onPress={DeleteTask}
         />
-        {done ? (
+        {done == 1 ? (
           <MaterialIcons
             name="done"
             size={24}
@@ -89,3 +91,7 @@ const styles = StyleSheet.create({
     borderRadius: 8,
   },
 });
+function useForceUpdate() {
+  const [value, setValue] = useState(0);
+  return [() => setValue(value + 1), value];
+}

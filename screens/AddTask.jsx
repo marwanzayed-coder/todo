@@ -12,10 +12,11 @@ import React, { useState, useEffect, useCallback } from "react";
 import Header from "../components/Header";
 import Title from "../components/Title";
 
-const AddTask = ({ navigation }) => {
+const AddTask = ({ navigation, db }) => {
   const [data, setData] = useState({});
   const [refreshing, setRefreshing] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
+  const [forceUpdate, forceUpdateId] = useForceUpdate();
 
   const onRefresh = useCallback(() => {
     setRefreshing(true);
@@ -25,23 +26,29 @@ const AddTask = ({ navigation }) => {
       setIsLoading(true);
     }, 2000);
   }, []);
-  const addData = () => {
-    fetch("https://todo-server-1vzj.onrender.com/api/v1/task", {
-      method: "POST",
-      body: {
-        ...data,
-        user: "643dc3266d73f5be72e123b2",
+  const add = () => {
+    if (
+      data.name === null ||
+      data.name === "" ||
+      data.desc === null ||
+      data.desc === ""
+    ) {
+      return "The Un Data";
+    }
+
+    db.transaction(
+      (tx) => {
+        tx.executeSql("insert into tasks (done, name, desc) values (0, ?, ?)", [
+          data.name,
+          data.desc,
+        ]);
+        tx.executeSql("select * from tasks", [], (_, { rows }) =>
+          navigation.navigate("home")
+        );
       },
-      headers: {
-        Authorization: "LQD0nviJlMueu9XM",
-      },
-    })
-      .then((response) => response.json())
-      .then((data) => {
-        console.log(data);
-        navigation.navigate("home");
-      })
-      .catch((err) => console.error(err));
+      null,
+      forceUpdate
+    );
   };
   return (
     <>
@@ -78,7 +85,7 @@ const AddTask = ({ navigation }) => {
                   selectionColor={"#fff"}
                 />
               </View>
-              <TouchableHighlight style={styles.btn} onPress={addData}>
+              <TouchableHighlight style={styles.btn} onPress={add}>
                 <Text style={{ color: "#fff", color: "#4B6BFB", fontSize: 18 }}>
                   Add Task
                 </Text>
@@ -122,3 +129,7 @@ const styles = StyleSheet.create({
     justifyContent: "center",
   },
 });
+function useForceUpdate() {
+  const [value, setValue] = useState(0);
+  return [() => setValue(value + 1), value];
+}

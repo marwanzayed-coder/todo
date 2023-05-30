@@ -3,14 +3,33 @@ import { NavigationContainer } from "@react-navigation/native";
 import { createNativeStackNavigator } from "@react-navigation/native-stack";
 import Home from "./screens/Home";
 import AddTask from "./screens/AddTask";
-import CreateUser from "./screens/CreateUser";
 import { Image, Text, BackHandler, Alert } from "react-native";
 import { useEffect } from "react";
-
+import * as SQLite from "expo-sqlite";
 const Stack = createNativeStackNavigator();
+function openDatabase() {
+  if (Platform.OS === "web") {
+    return {
+      transaction: () => {
+        return {
+          executeSql: () => {},
+        };
+      },
+    };
+  }
+
+  const db = SQLite.openDatabase("database.db");
+  return db;
+}
+const db = openDatabase();
 
 export default function App() {
   useEffect(() => {
+    db.transaction((tx) => {
+      tx.executeSql(
+        "create table if not exists tasks (id integer primary key not null, done int, name text, desc text);"
+      );
+    });
     BackHandler.addEventListener("hardwareBackPress", () => {
       Alert.alert(
         "Exit App",
@@ -49,14 +68,11 @@ export default function App() {
           headerTintColor: "#fff",
         }}
       >
-        <Stack.Screen name="create">
-          {(props) => <CreateUser {...props} userid="LQD0nviJlMueu9XM" />}
-        </Stack.Screen>
         <Stack.Screen name="home">
-          {(props) => <Home {...props} userid="LQD0nviJlMueu9XM" />}
+          {(props) => <Home {...props} db={db} />}
         </Stack.Screen>
         <Stack.Screen name="addTask">
-          {(props) => <AddTask {...props} userid="LQD0nviJlMueu9XM" />}
+          {(props) => <AddTask {...props} db={db} />}
         </Stack.Screen>
       </Stack.Navigator>
       <StatusBar style="light" />

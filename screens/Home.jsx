@@ -12,12 +12,11 @@ import Header from "../components/Header";
 import Title from "../components/Title";
 import Task from "../components/Task";
 
-const Home = ({ navigation }) => {
+const Home = ({ navigation, db }) => {
   const [tasks, setTasks] = useState([]);
   const [isLoading, setIsLoading] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
   const [isError, setIsError] = useState(false);
-
   const onRefresh = useCallback(() => {
     setRefreshing(true);
     setIsLoading(false);
@@ -28,23 +27,12 @@ const Home = ({ navigation }) => {
   }, []);
 
   useEffect(() => {
-    fetch(
-      "https://todo-server-1vzj.onrender.com/api/v1/task/643dc3266d73f5be72e123b2",
-      {
-        headers: {
-          Authorization: "LQD0nviJlMueu9XM",
-        },
-      }
-    )
-      .then((response) => response.json())
-      .then((data) => {
-        setTasks(data.tasks);
+    db.transaction((tx) => {
+      tx.executeSql(`select * from tasks`, [], (_, { rows: { _array } }) => {
+        setTasks(_array);
         setIsLoading(true);
-      })
-      .catch((err) => {
-        console.log(err);
-        setIsError(true);
       });
+    });
   }, [tasks]);
   return (
     <>
@@ -81,11 +69,12 @@ const Home = ({ navigation }) => {
             ) : tasks.length > 0 ? (
               tasks.map((item) => (
                 <Task
-                  key={item._id}
+                  key={item.id}
                   name={item.name}
                   desc={item.desc}
-                  id={item._id}
+                  id={item.id}
                   done={item.done}
+                  db={db}
                 />
               ))
             ) : (
