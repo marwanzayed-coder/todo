@@ -1,44 +1,92 @@
-import { StyleSheet, Text, View, TextInput, Pressable } from "react-native";
-import React, { useState, useEffect } from "react";
+import {
+  StyleSheet,
+  Text,
+  View,
+  TextInput,
+  ScrollView,
+  RefreshControl,
+  ActivityIndicator,
+  TouchableHighlight,
+} from "react-native";
+import React, { useState, useEffect, useCallback } from "react";
 import Header from "../components/Header";
 import Title from "../components/Title";
 
-const AddTask = ({ navigation, addTask }) => {
+const AddTask = ({ navigation }) => {
   const [data, setData] = useState({});
+  const [refreshing, setRefreshing] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
+
+  const onRefresh = useCallback(() => {
+    setRefreshing(true);
+    setIsLoading(false);
+    setTimeout(() => {
+      setRefreshing(false);
+      setIsLoading(true);
+    }, 2000);
+  }, []);
   const addData = () => {
-    addTask(data);
-    navigation.navigate("home");
+    fetch("https://todo-server-1vzj.onrender.com/api/v1/task", {
+      method: "POST",
+      body: {
+        ...data,
+        user: "643dc3266d73f5be72e123b2",
+      },
+      headers: {
+        Authorization: "LQD0nviJlMueu9XM",
+      },
+    })
+      .then((response) => response.json())
+      .then((data) => {
+        console.log(data);
+        navigation.navigate("home");
+      })
+      .catch((err) => console.error(err));
   };
   return (
     <>
-      <View style={styles.container}>
+      <ScrollView
+        style={styles.container}
+        refreshControl={
+          <RefreshControl
+            refreshing={refreshing}
+            onRefresh={onRefresh}
+            progressBackgroundColor={"#4B6BFB"}
+            colors={["#fff"]}
+          />
+        }
+      >
         <View style={{ marginHorizontal: 32 }}>
           <Title title="Add Task" />
-          <View style={{ marginTop: 30 }}>
-            <View style={styles.inputView}>
-              <Text style={styles.label}>Task Name:</Text>
-              <TextInput
-                style={styles.input}
-                onChangeText={(value) => setData({ ...data, value })}
-                selectionColor={"#4B6BFB"}
-              />
+          {isLoading == false ? (
+            <ActivityIndicator size="large" color="#1E293B" />
+          ) : (
+            <View style={{ marginTop: 30 }}>
+              <View style={styles.inputView}>
+                <Text style={styles.label}>Task Name:</Text>
+                <TextInput
+                  style={styles.input}
+                  onChangeText={(name) => setData({ ...data, name })}
+                  selectionColor={"#fff"}
+                />
+              </View>
+              <View style={styles.inputView}>
+                <Text style={styles.label}>Task Description:</Text>
+                <TextInput
+                  style={styles.input}
+                  onChangeText={(desc) => setData({ ...data, desc })}
+                  selectionColor={"#fff"}
+                />
+              </View>
+              <TouchableHighlight style={styles.btn} onPress={addData}>
+                <Text style={{ color: "#fff", color: "#4B6BFB", fontSize: 18 }}>
+                  Add Task
+                </Text>
+              </TouchableHighlight>
             </View>
-            <View style={styles.inputView}>
-              <Text style={styles.label}>Task Description:</Text>
-              <TextInput
-                style={styles.input}
-                onChangeText={(desc) => setData({ ...data, desc })}
-                selectionColor={"#4B6BFB"}
-              />
-            </View>
-            <Pressable style={styles.btn} onPress={addData}>
-              <Text style={{ color: "#fff", color: "#4B6BFB", fontSize: 18 }}>
-                Add Task
-              </Text>
-            </Pressable>
-          </View>
+          )}
         </View>
-      </View>
+      </ScrollView>
       <Header navigation={navigation} />
     </>
   );

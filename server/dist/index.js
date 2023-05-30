@@ -4,7 +4,6 @@ import mongoose from "mongoose";
 import cors from "cors";
 import cookieParser from "cookie-parser";
 import morgan from "morgan";
-import rateLimit from "express-rate-limit";
 import compression from "compression";
 import bodyParser from "body-parser";
 import { authRouter } from "./routers/auth.js";
@@ -20,12 +19,6 @@ app.use(compression());
 if (process.env.NODE_ENV === "development") {
     app.use(morgan("dev"));
 }
-const limiter = rateLimit({
-    windowMs: 1 * 60 * 1000,
-    max: 30,
-    message: "Too many accounts created from this IP, please try again after an hour",
-});
-app.use("/", limiter);
 app.use("/api/v1/auth", authRouter);
 app.use("/api/v1/task", taskRouter);
 // Connect to db

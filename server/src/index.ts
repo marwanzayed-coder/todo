@@ -24,15 +24,6 @@ if (process.env.NODE_ENV === "development") {
   app.use(morgan("dev"));
 }
 
-const limiter = rateLimit({
-  windowMs: 1 * 60 * 1000, // 1 minute
-  max: 30,
-  message:
-    "Too many accounts created from this IP, please try again after an hour",
-});
-
-app.use("/", limiter);
-
 app.use("/api/v1/auth", authRouter);
 app.use("/api/v1/task", taskRouter);
 
